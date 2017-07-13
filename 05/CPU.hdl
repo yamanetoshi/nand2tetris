@@ -40,4 +40,23 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+    // load of A : d1
+    // load of D : d2
+    // inc  of PC : !pcload
+    // load of PC : Or8Way(in[0]=j1, in[1]=j2, in[2]=j3, in[3..7]=false, out=pcload)
+    // sel of Mux : a
+    /*
+    Add16(a=instruction, b=false, out=trash, out[12]=sela);
+    */
+    Add16(a=instruction, b=false, out=trash, out[12]=sela, out[11]=aluzx, out[10]=alunx, out[9]=aluzy, out[8]=aluny, out[7]=aluf, out[6]=aluno, out[5]=loadd1, out[4]=loadd2, out[3]=writeM, out[2]=j1, out[1]=j2, out[0]=j3);
+    
+    Or8Way(in[0]=j1, in[1]=j2, in[2]=j3, in[3..7]=false, out=pcload);
+    Not(in=pcload, out=pcinc);
+    Mux16(a=instruction, b=aluout, sel=sela, out=ain);
+    Register(in=ain, load=loadd1, out=aout, out[0..14]=addressM); // A
+    Register(in=aluout, load=loadd2, out=dout); // D
+    Mux16(a=aout, b=inM, sel=sela, out=aluin);
+    PC(in=aout, load=pcload, inc=pcinc, reset=reset, out=pctrash, out[0..14]=pc);
+    ALU(x=dout, y=aluin, zx=aluzx, nx=alunx, zy=aluzy, ny=aluny, f=aluf, no=aluno, out=outM, out=aluout, zr=aluzr, ng=alung);
+    
 }
