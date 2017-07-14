@@ -40,23 +40,32 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
-    // load of A : d1
-    // load of D : d2
-    // inc  of PC : !pcload
-    // load of PC : Or8Way(in[0]=j1, in[1]=j2, in[2]=j3, in[3..7]=false, out=pcload)
-    // sel of Mux : a
-    /*
-    Add16(a=instruction, b=false, out=trash, out[12]=sela);
-    */
-    Add16(a=instruction, b=false, out=trash, out[12]=sela, out[11]=aluzx, out[10]=alunx, out[9]=aluzy, out[8]=aluny, out[7]=aluf, out[6]=aluno, out[5]=loadd1, out[4]=loadd2, out[3]=writeM, out[2]=j1, out[1]=j2, out[0]=j3);
+
+    Not(in=instruction[15], out=ainst);
+    Not(in=ainst, out=cinst);
+    Or(a=ainst, b=instruction[5], out=aload);
+    And(a=cinst, b=instruction[4], out=dload);
+
+    Mux16(a=aluout, b=instruction, sel=ainst, out=aregin);
+    ARegister(in=aregin, load=aload, out=inA, out[0..14]=addressM, out=PCin);
+    DRegister(in=aluout, load=dload, out=dout);
+
+    Mux16(a=inA, b=inM, sel=instruction[12], out=amout);
+
+    ALU(x=dout, y=amout, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=outM, out=aluout, zr=aluzr, ng=alung);
+
+    Or(a=false, b=instruction[3], out=writeM);
     
-    Or8Way(in[0]=j1, in[1]=j2, in[2]=j3, in[3..7]=false, out=pcload);
-    Not(in=pcload, out=pcinc);
-    Mux16(a=instruction, b=aluout, sel=sela, out=ain);
-    Register(in=ain, load=loadd1, out=aout, out[0..14]=addressM); // A
-    Register(in=aluout, load=loadd2, out=dout); // D
-    Mux16(a=aout, b=inM, sel=sela, out=aluin);
-    PC(in=aout, load=pcload, inc=pcinc, reset=reset, out=pctrash, out[0..14]=pc);
-    ALU(x=dout, y=aluin, zx=aluzx, nx=alunx, zy=aluzy, ny=aluny, f=aluf, no=aluno, out=outM, out=aluout, zr=aluzr, ng=alung);
-    
+    Or(a=instruction[0], b=instruction[1], out=jmptmp);
+    Or(a=jmptmp, b=instruction[2], out=inctmp);
+    Not(in=inctmp, out=pcinc);
+
+    And(a=aluzr, b=instruction[2], out=tmp1);
+    And(a=alung, b=instruction[1], out=tmp2);
+    And(a=tmp1, b=tmp2, out=tmp3);
+    Not(in=tmp3, out=tmp3n);
+    Or(a=tmp1, b=tmp2, out=tmp12);
+    Or(a=tmp12, b=tmp3n, out=tmpload);
+
+    PC(in=PCin, load=tmpload, inc=pcinc, reset=reset, out[0..14]=pc);
 }
