@@ -40,4 +40,41 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+
+    Not(in=instruction[15], out=ainst);
+    Not(in=ainst, out=cinst);
+
+    Mux16(a=aluout, b=instruction, sel=ainst, out=aregin);
+
+    And(a=cinst, b=instruction[5], out=caload);
+    Or(a=ainst, b=caload, out=aload);
+
+    ARegister(in=aregin, load=aload, out=inA, out[0..14]=addressM, out=PCin);
+
+    And(a=cinst, b=instruction[4], out=dload);
+    DRegister(in=aluout, load=dload, out=dout);
+
+    And(a=cinst, b=instruction[12], out=msel);
+    Mux16(a=inA, b=inM, sel=msel, out=amout);
+
+    ALU(x=dout, y=amout, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=outM, out=aluout, zr=aluzr, ng=alung);
+
+    And(a=cinst, b=instruction[3], out=writeM);
+
+    And(a=alung, b=instruction[2], out=tmp1); // if j1 is true and ng is true then jump
+    And(a=aluzr, b=instruction[1], out=tmp2); // if j2 is true and zr is true then junp
+
+    Not(in=aluzr, out=notzero);
+    Not(in=alung, out=notng);
+    And(a=notzero, b=notng, out=gttmp);
+    And(a=gttmp, b=instruction[0], out=tmp3); // if j3 is true and ng is false and zr is false then jump
+
+    Or(a=tmp1, b=tmp2, out=tmp12);
+    Or(a=tmp12, b=tmp3, out=tmpload);
+
+    Mux(a=tmpload, b=false, sel=ainst, out=pcload);
+
+    Not(in=pcload, out=pcinc);
+
+    PC(in=PCin, load=pcload, inc=pcinc, reset=reset, out[0..14]=pc);
 }
